@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react"
 import { MapContainer, TileLayer, Circle, CircleMarker, Popup, useMap } from "react-leaflet"
 import type { LatLng, RankedStation } from "@/types"
-import { latLngBounds } from "leaflet"
+//import { latLngBounds } from "leaflet"
 
 type Props = {
   user: LatLng
