@@ -30,10 +30,10 @@ Includes a details page with simulated reliability history and dynamic queue upd
 
 ## Run
 
-- Open the preview and click Publish to deploy on Vercel, or Download ZIP/GitHub to use elsewhere.
+- Open the preview and click on Vercel link, or Download ZIP/GitHub to use elsewhere.
 - No environment variables are required.
 
 ## Notes
 
-- Color system (solid only): teal (brand), white, near-black, muted gray (4 total).
+- Color system is (solid only): teal (brand), white, near-black, muted gray (4 total).
 - Typography: Geist Sans/Mono via layout; 1 UI family used for headings/body.

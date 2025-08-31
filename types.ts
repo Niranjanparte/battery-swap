@@ -5,7 +5,7 @@ export type Station = {
   lng: number
   avgSpeedKph: number
   queueLength: number
-  reliability: number // 0..1
+  reliability: number 
 }
 
 export type LatLng = { lat: number; lng: number }

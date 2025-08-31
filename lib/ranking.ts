@@ -9,8 +9,6 @@ export function computeTravelEtaMin(
 ): { distanceKm: number; travelEtaMin: number } {
   const distanceKm = haversineKm(userLat, userLng, station.lat, station.lng)
 
-  // Battery affects effective speed:
-  // 0% => 50% speed, 100% => 100% speed. Clamp 0.5..1.0
   const batteryFactor = 0.5 + 0.5 * (batteryPercent / 100)
   const effectiveSpeed = Math.max(10, station.avgSpeedKph * batteryFactor) // safety minimum 10 kph
 
@@ -20,7 +18,6 @@ export function computeTravelEtaMin(
 }
 
 export function estimateWaitMin(queueLen: number): number {
-  // Simple model: 6 minutes per swap in queue
   return queueLen * 6
 }
 

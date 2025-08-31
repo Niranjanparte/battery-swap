@@ -11,8 +11,8 @@ import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import MapOverview from "@/components/maps-overview"
-import { FavoriteToggle } from "@/components/favorite-toggle"
+import MiniMap from "@/components/mini-maps"
+import { FavoriteToggle } from "./favorite-toggle"
 import type { RankedStation } from "@/types"
 import { cn } from "@/lib/utils"
 
@@ -42,24 +42,6 @@ export default function SearchStations() {
   const [favorites, setFavorites] = useState<string[]>([])
   const { toast } = useToast()
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("favorites:stations")
-      if (raw) setFavorites(JSON.parse(raw))
-    } catch {}
-  }, [])
-  useEffect(() => {
-    try {
-      localStorage.setItem("favorites:stations", JSON.stringify(favorites))
-    } catch {}
-  }, [favorites])
-
-  const isFav = useCallback((id: string) => favorites.includes(id), [favorites])
-  const toggleFav = useCallback(
-    (id: string) => setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
-    [],
-  )
-
   const coords = useMemo(() => {
     if (method === "coords" && lat !== "" && lng !== "") {
       return { lat: Number(lat), lng: Number(lng) }
@@ -69,6 +51,58 @@ export default function SearchStations() {
     }
     return null
   }, [method, lat, lng, address])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const sp = new URLSearchParams(window.location.search)
+
+    const qLat = sp.get("lat")
+    const qLng = sp.get("lng")
+    if (qLat && qLng && !Number.isNaN(Number(qLat)) && !Number.isNaN(Number(qLng))) {
+      setMethod("coords")
+      setLat(Number(Number(qLat).toFixed(6)))
+      setLng(Number(Number(qLng).toFixed(6)))
+    }
+
+    const qBattery = sp.get("battery")
+    if (qBattery && !Number.isNaN(Number(qBattery))) setBattery(Math.min(100, Math.max(0, Number(qBattery))))
+
+    const qRadius = sp.get("radiusKm")
+    if (qRadius && !Number.isNaN(Number(qRadius))) setRadiusKm(Math.min(50, Math.max(1, Number(qRadius))))
+
+    const qUnit = sp.get("unit")
+    if (qUnit === "km" || qUnit === "mi") setUnit(qUnit)
+
+    const qMinRel = sp.get("minRel")
+    if (qMinRel && !Number.isNaN(Number(qMinRel))) setMinReliabilityPct(Math.min(99, Math.max(50, Number(qMinRel))))
+
+    const qMaxQueue = sp.get("maxQueue")
+    if (qMaxQueue && !Number.isNaN(Number(qMaxQueue))) setMaxQueue(Math.min(12, Math.max(0, Number(qMaxQueue))))
+
+    const qFavOnly = sp.get("favOnly")
+    if (qFavOnly === "1") setShowFavoritesOnly(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (!coords) return
+    const u = new URL(window.location.href)
+    u.searchParams.set("lat", String(coords.lat))
+    u.searchParams.set("lng", String(coords.lng))
+    u.searchParams.set("battery", String(battery))
+    u.searchParams.set("radiusKm", String(radiusKm))
+    u.searchParams.set("unit", unit)
+    u.searchParams.set("minRel", String(minReliabilityPct))
+    u.searchParams.set("maxQueue", String(maxQueue))
+    u.searchParams.set("favOnly", showFavoritesOnly ? "1" : "0")
+    window.history.replaceState(null, "", u.toString())
+  }, [coords, battery, radiusKm, unit, minReliabilityPct, maxQueue, showFavoritesOnly])
+
+  const isFav = useCallback((id: string) => favorites.includes(id), [favorites])
+  const toggleFav = useCallback(
+    (id: string) => setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
+    [],
+  )
 
   const queryUrl = useMemo(() => {
     if (!coords) return null
@@ -94,21 +128,49 @@ export default function SearchStations() {
     (s) => s.queueLength <= maxQueue && Math.round(s.reliability * 100) >= minReliabilityPct,
   )
 
-  const share = useCallback(() => {
-    if (!coords) return
-    const u = new URL(window.location.href)
-    u.searchParams.set("lat", String(coords.lat))
-    u.searchParams.set("lng", String(coords.lng))
-    u.searchParams.set("battery", String(battery))
-    u.searchParams.set("radiusKm", String(radiusKm))
-    u.searchParams.set("unit", unit)
-    u.searchParams.set("minRel", String(minReliabilityPct))
-    u.searchParams.set("maxQueue", String(maxQueue))
-    navigator.clipboard
-      .writeText(u.toString())
-      .then(() => toast({ title: "Link copied", description: "Your search is now shareable." }))
-      .catch(() => toast({ title: "Copy failed", description: "Unable to copy link.", variant: "destructive" }))
-  }, [coords, battery, radiusKm, unit, minReliabilityPct, maxQueue, toast])
+  const share = useCallback(async () => {
+    if (!coords) {
+      toast({
+        title: "Add a location",
+        description: "Enter coordinates or pick a demo address first.",
+        variant: "destructive",
+      })
+      return
+    }
+    const appUrl = new URL(window.location.href)
+    appUrl.searchParams.set("lat", String(coords.lat))
+    appUrl.searchParams.set("lng", String(coords.lng))
+    appUrl.searchParams.set("battery", String(battery))
+    appUrl.searchParams.set("radiusKm", String(radiusKm))
+    appUrl.searchParams.set("unit", unit)
+    appUrl.searchParams.set("minRel", String(minReliabilityPct))
+    appUrl.searchParams.set("maxQueue", String(maxQueue))
+    appUrl.searchParams.set("favOnly", showFavoritesOnly ? "1" : "0")
+
+    const mapsUrl = `https://maps.google.com/?q=${coords.lat},${coords.lng}`
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Battery Swap Station Finder",
+          text: `My location and search filters\nMaps: ${mapsUrl}`,
+          url: appUrl.toString(),
+        })
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(`${appUrl.toString()}\n${mapsUrl}`)
+        toast({ title: "Share link copied", description: "App link and Maps location copied to clipboard." })
+      } else {
+        window.prompt("Copy this link to share:", `${appUrl.toString()}\n${mapsUrl}`)
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(`${appUrl.toString()}\n${mapsUrl}`)
+        toast({ title: "Share link copied", description: "App link and Maps location copied to clipboard." })
+      } catch {
+        window.prompt("Copy this link to share:", `${appUrl.toString()}\n${mapsUrl}`)
+      }
+    }
+  }, [coords, battery, radiusKm, unit, minReliabilityPct, maxQueue, showFavoritesOnly, toast])
 
   const useMyLocation = useCallback(() => {
     if (!navigator.geolocation) return
@@ -124,7 +186,7 @@ export default function SearchStations() {
       <Card>
         <CardHeader className="flex items-center justify-between">
           <CardTitle className="text-pretty text-lg">Find Battery Swap Stations</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Select value={unit} onValueChange={(v: "km" | "mi") => setUnit(v)}>
               <SelectTrigger className="w-28">
                 <SelectValue placeholder="Units" />
@@ -134,7 +196,13 @@ export default function SearchStations() {
                 <SelectItem value="mi">miles</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="secondary" size="sm" onClick={share}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={share}
+              disabled={!coords}
+              aria-label="Share current location and filters"
+            >
               Share
             </Button>
           </div>
@@ -269,11 +337,20 @@ export default function SearchStations() {
             <CardTitle className="text-pretty text-base">Map overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <MapOverview
+            <MiniMap
               user={coords}
-              stations={stations.slice(0, 50)}
-              radiusKm={radiusKm}
-              className="w-full max-w-full"
+              points={stations.slice(0, 50).map((s) => ({
+                lat: s.lat,
+                lng: s.lng,
+                id: s.id,
+                color:
+                  Math.round(s.reliability * 100) >= 85
+                    ? "#16a34a" // green
+                    : Math.round(s.reliability * 100) < 70
+                      ? "#dc2626" // red
+                      : "#374151", // gray
+              }))}
+              className="w-full max-w-full rounded-md"
             />
           </CardContent>
         </Card>

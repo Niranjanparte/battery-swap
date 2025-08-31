@@ -17,14 +17,11 @@ function clamp(n: number, min: number, max: number) {
 }
 
 function randN(seed: number) {
-  // Deterministic-ish PRNG from seed; not cryptographic
   const x = Math.sin(seed) * 10000
   return x - Math.floor(x)
 }
 
-// Base stations located around Indian cities + generic coords.
 const baseStations: Station[] = [
-  // Bengaluru cluster
   {
     id: "blr-1",
     name: "Koramangala Swap Hub",
@@ -52,7 +49,6 @@ const baseStations: Station[] = [
     queueLength: 2,
     reliability: 0.9,
   },
-  // Mumbai cluster
   {
     id: "bom-1",
     name: "Andheri Swap Center",
@@ -71,7 +67,7 @@ const baseStations: Station[] = [
     queueLength: 7,
     reliability: 0.88,
   },
-  // Delhi cluster
+
   {
     id: "del-1",
     name: "Connaught Circle Swap",
@@ -90,7 +86,6 @@ const baseStations: Station[] = [
     queueLength: 3,
     reliability: 0.94,
   },
-  // Pune cluster
   {
     id: "pun-1",
     name: "Hinjawadi Swap Spot",
@@ -100,7 +95,6 @@ const baseStations: Station[] = [
     queueLength: 1,
     reliability: 0.96,
   },
-  // Hyderabad
   {
     id: "hyd-1",
     name: "HITEC Power Swap",
@@ -110,7 +104,7 @@ const baseStations: Station[] = [
     queueLength: 2,
     reliability: 0.93,
   },
-  // Generic spread
+
   {
     id: "gen-1",
     name: "Expressway Swap North",
@@ -119,7 +113,7 @@ const baseStations: Station[] = [
     avgSpeedKph: 47,
     queueLength: 3,
     reliability: 0.91,
-  }, // Kolkata
+  }, 
   {
     id: "gen-2",
     name: "Ring Road Swap West",
@@ -128,10 +122,9 @@ const baseStations: Station[] = [
     avgSpeedKph: 45,
     queueLength: 2,
     reliability: 0.95,
-  }, // Ahmedabad
+  }, 
 ]
 
-// Mutable copy for dynamics
 let stations: Station[] = baseStations.map((s) => ({ ...s }))
 
 function applyDynamics() {
@@ -144,11 +137,9 @@ function applyDynamics() {
 
   stations = stations.map((s, idx) => {
     const seed = dynamics.jitterSeed + idx * 1.337
-    // Queue moves slightly up/down, bounded [0, 12]
     const queueDrift = Math.round((randN(seed) - 0.5) * 2) // -1, 0, +1
     const newQueue = clamp(s.queueLength + queueDrift, 0, 12)
 
-    // Reliability gentle drift; keep in [0.75, 0.99]
     const noise = (randN(seed + 42) - 0.5) * 0.01
     const towardBase = (baseStations[idx]?.reliability ?? 0.9) - s.reliability
     const newReliability = clamp(s.reliability + towardBase * 0.05 + noise, 0.75, 0.99)
@@ -159,8 +150,7 @@ function applyDynamics() {
 
 export function getStations(): Station[] {
   applyDynamics()
-  return stations
-}
+  return stations }
 
 export function getStationById(id: string): Station | undefined {
   applyDynamics()

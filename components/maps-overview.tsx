@@ -1,9 +1,8 @@
 "use client"
-
 import { useEffect, useMemo } from "react"
 import { MapContainer, TileLayer, Circle, CircleMarker, Popup, useMap } from "react-leaflet"
 import type { LatLng, RankedStation } from "@/types"
-//import { latLngBounds } from "leaflet"
+import { latLngBounds } from "@/leaflet"
 
 type Props = {
   user: LatLng
@@ -33,18 +32,17 @@ export default function MapOverview({ user, stations, radiusKm, className }: Pro
   const userPos: [number, number] = [user.lat, user.lng]
   const mapCenter = useMemo(() => userPos, [user.lat, user.lng])
 
-  // Color system: primary teal; neutrals (white, gray-700, gray-300); accents green/red
   const stationColor = (rel: number) => {
     const pct = Math.round(rel * 100)
-    if (pct >= 85) return "#16a34a" // green-600
-    if (pct < 70) return "#dc2626" // red-600
-    return "#374151" // gray-700
+    if (pct >= 85) return "#16a34a" 
+    if (pct < 70) return "#dc2626" 
+    return "#374151" 
   }
 
   return (
     <div className={className}>
       <MapContainer
-        center={mapCenter}
+        whenReady={(map) => map.setView(mapCenter, 13)}
         zoom={13}
         style={{ height: 320, width: "100%", borderRadius: 8, overflow: "hidden" }}
         scrollWheelZoom={false}
@@ -55,10 +53,8 @@ export default function MapOverview({ user, stations, radiusKm, className }: Pro
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* Search radius */}
         <Circle center={userPos} radius={radiusKm * 1000} pathOptions={{ color: "#0f766e", fillOpacity: 0.06 }} />
 
-        {/* User marker */}
         <CircleMarker
           center={userPos}
           radius={8}
@@ -74,7 +70,7 @@ export default function MapOverview({ user, stations, radiusKm, className }: Pro
           </Popup>
         </CircleMarker>
 
-        {/* Stations */}
+
         {stations.map((s) => (
           <CircleMarker
             key={s.id}

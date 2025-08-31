@@ -38,19 +38,16 @@ export default function MiniMap({
       return { x, y }
     }
 
-    // border
     ctx.strokeStyle = "#d1d5db"
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
 
-    // user
     const u = toXY(user)
     ctx.fillStyle = "#0f766e" // teal-700
     ctx.beginPath()
     ctx.arc(u.x, u.y, 5, 0, Math.PI * 2)
     ctx.fill()
 
-    // stations
     for (const p of points) {
       const { x, y } = toXY(p)
       ctx.fillStyle = p.color || "#1f2937"
