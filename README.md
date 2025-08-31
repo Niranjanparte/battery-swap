@@ -33,6 +33,18 @@ Includes a details page with simulated reliability history and dynamic queue upd
 - Open the preview and click on Vercel link, or Download ZIP/GitHub to use elsewhere.
 - No environment variables are required.
 
+### Local Setup
+1. Clone this repo or download the ZIP:
+   ```bash
+   git clone https://github.com/your-username/battery-swap.git
+   cd battery-swap
+   
+2. Install dependencies
+   npm install
+   
+4. Start the dev server
+   npm run dev
+   
 ## Notes
 
 - Color system is (solid only): teal (brand), white, near-black, muted gray (4 total).
